@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Categories=Graphics;VectorGraphics;GTK;
+Name=pasopati
+Comment="Bulk Convert Tool"
+TryExec=/opt/pasopati/pasopati
+Exec=/opt/pasopati/pasopati %F
+Icon=/opt/pasopati/pasopati.png
+MimeType=inode/directory;
+X-KDE-Library=pasopati
+X-KDE-FactoryName=devlovers
+X-KDE-ServiceType=utils

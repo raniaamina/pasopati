@@ -1,0 +1,103 @@
+#!/bin/bash
+
+set -e
+
+DIALOGSET="--center --no-escape --window-icon=/opt/pasopati/pasopati.png --width=400"
+KEY=`echo $RANDOM`
+
+MAINDIR=$PWD
+SCDIR=$1
+
+yad --plug=$KEY --tabnum=1 --form --title="Pasopati" $DIALOGSET --scroll --vscroll-policy=auto --focus-field=1 \
+--field=" Folder Sumber":DIR \
+--field=" Folder Ekspor":DIR \
+--field=" Lebar (px)":NUM \
+--field=" Tinggi (px)":NUM \
+--field=" Kualitas":SCL \
+--field=" Colorspace":CB \
+--field=" Crop Result":CHK \
+--separator=$'\n' \
+-- "$SCDIR" "$MAINDIR" "128\!0..10000\!1\!0" "128\!0..10000\!1\!0" "90\!1..100\!1\!0" "RGB!CMYK" "TRUE"\
+> /tmp/pasoresizer-tmp &
+
+yad --plug=$KEY --tabnum=2 --form --title="Pasopati" $DIALOGSET  \
+--title="Pasopati" \
+--text="\nPasopati merupakan perkakas pengubah ukuran gambar secara masal yang dikembangkan oleh Devlovers ID.\n\nCara penggunaan:\nKlik kanan berkas yang memuat gambar Anda, lalu buka dengan Pasopati. Isi paramter dan klik Ok/Apply!" \
+> /tmp/pasoabout-tmp &
+
+# Main tab Setting
+yad $DIALOGSET --center --notebook --key=$KEY  --tab="Bulk Resize" --tab="About" \
+--image-on-top \
+--title="Pasopati" \
+--image=/opt/pasopati/pasopati.png \
+--text="Simple Tool for Bulk Resize Your Image \nBy Devlovers ID"
+
+# Variableset
+SCDIR=`sed "1q;d" /tmp/pasoresizer-tmp`
+OUTPUTDIR=`sed "2q;d" /tmp/pasoresizer-tmp`
+WIDTH="`sed "3q;d" /tmp/pasoresizer-tmp`"
+HEIGHT=`sed "4q;d" /tmp/pasoresizer-tmp`
+QUALITY=`sed "5q;d" /tmp/pasoresizer-tmp`
+COLORSPACE=`sed "6q;d" /tmp/pasoresizer-tmp`
+CROPSTAT=`sed "7q;d" /tmp/pasoresizer-tmp`
+
+cat /tmp/pasoresizer-tmp
+
+if [[ $WIDTH == 0 ]]; then
+    GEOMETRY=`echo x$HEIGHT`
+    echo $GEOMETRY 
+else
+    GEOMETRY="$WIDTH"x"$HEIGHT"
+    echo $GEOMETRY
+fi
+
+if [[ $HEIGHT == 0 ]]; then
+    GEOMETRY=`echo $WIDTH`
+    echo $GEOMETRY 
+else
+    GEOMETRY="$WIDTH"x"$HEIGHT"
+    echo $GEOMETRY
+fi
+
+if [[ $CROPSTAT == TRUE ]]; then
+    CROPIMG="`echo -gravity center -crop "$WIDTH"x"$HEIGHT"+0+0`"
+    echo $CROPIMG 
+else
+    CROPIMG=" "
+    echo $CROPIMG
+fi
+
+
+# Variabel Check
+echo "Memproses berkas dari folder $SCDIR ke folder $OUTPUTDIR dengan ukuran $GEOMETRY (px) di kualitas $QUALITY dg palet $COLORSPACE"
+
+# export 
+[ ! -d $OUTPUTDIR ] && mkdir -p $OUTPUTDIR
+cd "$SCDIR"
+echo "folder sekarang $PWD"
+echo "target folder $OUTPUTDIR"
+
+
+# converting JPG
+COUNTJPG=(`find $SCDIR -maxdepth 1 -name "*.jpg"`)
+if [ ${#COUNTJPG[@]} -gt 0 ]; then 
+    for i in *.jpg; do convert -geometry $GEOMETRY^ $CROPIMG -strip -interlace Plane -quality $QUALITY -colorspace $COLORSPACE "$i" "$OUTPUTDIR/${i%.*}.jpg" ; done | yad --progress --pulsate --percentage=30 $DIALOGSET --text="Memproses..." --on-top --auto-kill --auto-close --button=gtk-cancel &>> /tmp/pasoresizer-tmp 
+else 
+    echo "No JPG Found, nothing todo"
+fi
+
+# converting PNG
+COUNTPNG=(`find $SCDIR -maxdepth 1 -name "*.png"`)
+if [ ${#COUNTPNG[@]} -gt 0 ]; then 
+    for i in *.png; do convert -geometry $GEOMETRY^ $CROPIMG "$i" "$OUTPUTDIR/${i%.*}.png" ; done | yad --progress --pulsate --percentage=80 $DIALOGSET --text="Memproses..." --on-top --auto-kill --auto-close --button=gtk-cancel &>> /tmp/pasoresizer-tmp
+else 
+    echo "No PNG Found, nothing todo"
+fi
+
+cd "$MAINDIR"
+
+# Dialog Info
+TOTAL=`ls $OUTPUTDIR | wc -l`
+echo -e "Berhasil memproses $TOTAL gambar ke folder $OUTPUTDIR! \n\nPasopati by Devlovers ID \nhttps://dev-is.my.id/" | yad --center --title="Status" --width=500 --height=320 --button="gtk-ok:0" --image=/opt/pasopati/pasopati.png  --text-info --wrap --fixed --show-uri --uri-color=#ad8305
+
+# # rm /tmp/pasoresizer-tmp
