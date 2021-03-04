@@ -2,7 +2,7 @@
 
 ## Dependencies
 - ImageMagick
-- Yed
+- Yad
 
 ## Install
 For Debian base distro, get it from [Gimpscape Repository](https://gimpscape.github.io/gimpscape-ppa/)
