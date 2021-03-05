@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Pasopati by Rania Amina (me@raniaamina)
-VERSION=1.7.0
+VERSION=1.7.5
 
 set -e
 
@@ -58,8 +58,9 @@ yad --plug=$KEY --tabnum=1 --form --title="Pasopati" $DIALOGSET --scroll --vscro
 --field=" Colorspace":CB \
 --field=" Export Format":CB \
 --field=" Crop Result":CHK \
+--field=" Optimize PNG":CHK \
 --separator=$'\n' \
--- "$SCDIR" "$MAINDIR" "128\!0..10000\!1\!0" "128\!0..10000\!1\!0" "90\!1..100\!1\!0" "RGB!CMYK" "Default!PNG!JPG" "TRUE"\
+-- "$SCDIR" "$MAINDIR" "128\!0..10000\!1\!0" "128\!0..10000\!1\!0" "90\!1..100\!1\!0" "RGB!CMYK" "Default!PNG!JPG" "TRUE" "FALSE"\
 > /tmp/pasoresizer-tmp &
 
 yad --plug=$KEY --tabnum=2 --form --title="Pasopati" $DIALOGSET  \
@@ -83,6 +84,7 @@ QUALITY=`sed "5q;d" /tmp/pasoresizer-tmp`
 COLORSPACE=`sed "6q;d" /tmp/pasoresizer-tmp`
 EXFORMAT=`sed "7q;d" /tmp/pasoresizer-tmp`
 CROPSTAT=`sed "8q;d" /tmp/pasoresizer-tmp`
+PNGOPT=`sed "9q;d" /tmp/pasoresizer-tmp`
 
 # cat /tmp/pasoresizer-tmp
 
@@ -163,6 +165,14 @@ CONVERT_TO_PNG () {
     convert -geometry $GEOMETRY^ $CROPIMG "$i" "$OUTPUTDIR/${i%.*}.png"; let index++; echo $persen; done 
 }
 
+OPTIMIZE_PNG () {
+    cd "$OUTPUTDIR"
+    echo -e "\n Optimizing PNG file size ..."
+    echo $PWD 
+    ls
+    for i in *.png; do pngquant -f -o "${i%.*}.png" "$i"; done
+}
+
 # check folder
 FOLDERCOUNT=$(ls -w 1 "$SCDIR" | wc -l)
 if [[ $FOLDERCOUNT == 0 ]]; then
@@ -188,6 +198,12 @@ if [[ $EXFORMAT == PNG ]]; then
     ITEMS=$(ls -w 1 "$SCDIR" | wc -l)
     index=2
     CONVERT_TO_PNG | yad --progress --percentage=0 --center --width=350 --auto-close --title="Memproses Berkas"
+fi
+
+if [[ $PNGOPT == TRUE ]]; then
+    ITEMS=$(ls -w 1 "$SCDIR" | wc -l)
+    index=2
+    OPTIMIZE_PNG | yad --progress --percentage=0 --center --width=350 --auto-close --title="Mengoptimasi berkas PNG"
 fi
 
 cd "$MAINDIR"
