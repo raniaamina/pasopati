@@ -1,9 +1,50 @@
 #!/bin/bash
 
+# Pasopati by Rania Amina (me@raniaamina)
+VERSION=1.5.0
+
 set -e
 
 DIALOGSET="--center --no-escape --window-icon=/opt/pasopati/pasopati.png --width=400"
 KEY=`echo $RANDOM`
+
+if [ "$1" = "--version" ] ; then
+  echo -e "\n  Pasopati v$VERSION"
+  echo -e "  by Devlovers ID\n"
+  exit 0
+fi
+
+if [ "$1" = "--donate" ] ; then
+  echo 'Membuka halaman donasi ...'
+  xdg-open https://support.dev-is.my.id/
+  exit 0
+fi
+
+
+if [ "$1" = "--docs" ] ; then
+  echo 'Membuka halaman repositori ...'
+  xdg-open https://github.com/raniaamina/pasopati
+  exit 0
+fi
+
+
+if [ "$1" = "--help" ] ; then
+  echo
+  echo "Penggunaan Umum:"
+  echo "pasopati [NAMA-FOLDER]"
+  echo "  Contoh: pasopati folder-saya"
+  echo ""
+  echo "Parameter Khusus"
+  echo "  --version             Menampilkan versi Inkporter"
+  echo "  --docs                Membuka halaman dokumentasi"
+  echo "  --donate              Membuka halaman donasi"
+  echo "  --help                Menampilkan halaman bantuan"
+  echo 
+  echo "Pasopati v$VERSION"
+  echo "https://github.com/raniaamina/pasopati"
+  echo
+  exit 0
+fi
 
 MAINDIR=$PWD
 SCDIR=$1
@@ -15,9 +56,10 @@ yad --plug=$KEY --tabnum=1 --form --title="Pasopati" $DIALOGSET --scroll --vscro
 --field=" Tinggi (px)":NUM \
 --field=" Kualitas":SCL \
 --field=" Colorspace":CB \
+--field=" Export Format":CB \
 --field=" Crop Result":CHK \
 --separator=$'\n' \
--- "$SCDIR" "$MAINDIR" "128\!0..10000\!1\!0" "128\!0..10000\!1\!0" "90\!1..100\!1\!0" "RGB!CMYK" "TRUE"\
+-- "$SCDIR" "$MAINDIR" "128\!0..10000\!1\!0" "128\!0..10000\!1\!0" "90\!1..100\!1\!0" "RGB!CMYK" "Default!PNG!JPG" "TRUE"\
 > /tmp/pasoresizer-tmp &
 
 yad --plug=$KEY --tabnum=2 --form --title="Pasopati" $DIALOGSET  \
@@ -39,37 +81,38 @@ WIDTH="`sed "3q;d" /tmp/pasoresizer-tmp`"
 HEIGHT=`sed "4q;d" /tmp/pasoresizer-tmp`
 QUALITY=`sed "5q;d" /tmp/pasoresizer-tmp`
 COLORSPACE=`sed "6q;d" /tmp/pasoresizer-tmp`
-CROPSTAT=`sed "7q;d" /tmp/pasoresizer-tmp`
+EXFORMAT=`sed "7q;d" /tmp/pasoresizer-tmp`
+CROPSTAT=`sed "8q;d" /tmp/pasoresizer-tmp`
 
-cat /tmp/pasoresizer-tmp
+# cat /tmp/pasoresizer-tmp
 
 if [[ $WIDTH == 0 ]]; then
     GEOMETRY=`echo x$HEIGHT`
-    echo $GEOMETRY 
+    # echo $GEOMETRY 
 else
     GEOMETRY="$WIDTH"x"$HEIGHT"
-    echo $GEOMETRY
+    # echo $GEOMETRY
 fi
 
 if [[ $HEIGHT == 0 ]]; then
     GEOMETRY=`echo $WIDTH`
-    echo $GEOMETRY 
+    # echo $GEOMETRY 
 else
     GEOMETRY="$WIDTH"x"$HEIGHT"
-    echo $GEOMETRY
+    # echo $GEOMETRY
 fi
 
 if [[ $CROPSTAT == TRUE ]]; then
     CROPIMG="`echo -gravity center -crop "$WIDTH"x"$HEIGHT"+0+0`"
-    echo $CROPIMG 
+    # echo $CROPIMG 
 else
     CROPIMG=" "
-    echo $CROPIMG
+    # echo $CROPIMG
 fi
 
 
 # Variabel Check
-echo "Memproses berkas dari folder $SCDIR ke folder $OUTPUTDIR dengan ukuran $GEOMETRY (px) di kualitas $QUALITY dg palet $COLORSPACE"
+echo -e "\n Memproses berkas dari folder $SCDIR ke folder $OUTPUTDIR dengan ukuran $GEOMETRY (px) di kualitas $QUALITY dg palet $COLORSPACE ke format $EXFORMAT \n"
 
 # export 
 [ ! -d $OUTPUTDIR ] && mkdir -p $OUTPUTDIR
@@ -78,26 +121,79 @@ echo "folder sekarang $PWD"
 echo "target folder $OUTPUTDIR"
 
 
-# converting JPG
-COUNTJPG=(`find $SCDIR -maxdepth 1 -name "*.jpg"`)
-if [ ${#COUNTJPG[@]} -gt 0 ]; then 
-    for i in *.jpg; do convert -geometry $GEOMETRY^ $CROPIMG -strip -interlace Plane -quality $QUALITY -colorspace $COLORSPACE "$i" "$OUTPUTDIR/${i%.*}.jpg" ; done | yad --progress --pulsate --percentage=30 $DIALOGSET --text="Memproses..." --on-top --auto-kill --auto-close --button=gtk-cancel &>> /tmp/pasoresizer-tmp 
-else 
+CONVERT_JPG () {
+    COUNTJPG=(`find "$SCDIR" -maxdepth 1 -name "*.jpg"`)
+    if [ ${#COUNTJPG[@]} -gt 0 ]; then 
+    for i in *.jpg
+    do 
+    persen=$(($index*100/$ITEMS))
+    echo "# Memproses (JPG) $i \n" 
+	convert -geometry $GEOMETRY^ $CROPIMG -strip -interlace Plane -quality $QUALITY -colorspace $COLORSPACE "$i" "$OUTPUTDIR/${i%.*}.jpg"; let index++ ; echo $persen ; done #| yad --progress --percentage=0 --center --width=350 --auto-close --title="Memproses Berkas" 
+    else 
     echo "No JPG Found, nothing todo"
+    fi
+}
+
+CONVERT_PNG () {
+    COUNTPNG=(`find "$SCDIR" -maxdepth 1 -name "*.png"`)
+    if [ ${#COUNTPNG[@]} -gt 0 ]; then 
+    for i in *.png
+    do
+    persen=$(($index*100/$ITEMS));
+    echo "# Memproses (PNG) '$i' \n" 
+    convert -geometry $GEOMETRY^ $CROPIMG "$i" "$OUTPUTDIR/${i%.*}.png"; let index++; echo $persen; done #| yad --progress --percentage=0 --center --width=350 --auto-close --title="Memproses Berkas"
+    else 
+    echo "No PNG Found, nothing todo"
+    fi
+}
+
+CONVERT_TO_JPG () {
+    for i in *.*
+    do 
+    persen=$(($index*100/$ITEMS))
+    echo "# Memproses (JPG) '$i' \n" 
+	convert -geometry $GEOMETRY^ $CROPIMG -strip -interlace Plane -quality $QUALITY -colorspace $COLORSPACE "$i" "$OUTPUTDIR/${i%.*}.jpg"; let index++ ; echo $persen ; done 
+}
+
+CONVERT_TO_PNG () {
+    for i in *.*
+    do
+    persen=$(($index*100/$ITEMS));
+    echo "# Memproses (PNG) $i \n" 
+    convert -geometry $GEOMETRY^ $CROPIMG "$i" "$OUTPUTDIR/${i%.*}.png"; let index++; echo $persen; done 
+}
+
+# check folder
+FOLDERCOUNT=$(ls -w 1 "$SCDIR" | wc -l)
+if [[ $FOLDERCOUNT == 0 ]]; then
+yad --width=300 --info --text="\nHmm, Sepertinya folder yang Anda pilih kosong. Silakan coba lagi." --image dialog-error $DIALOGSET --button="gtk-close:0"
+exit
 fi
 
-# converting PNG
-COUNTPNG=(`find $SCDIR -maxdepth 1 -name "*.png"`)
-if [ ${#COUNTPNG[@]} -gt 0 ]; then 
-    for i in *.png; do convert -geometry $GEOMETRY^ $CROPIMG "$i" "$OUTPUTDIR/${i%.*}.png" ; done | yad --progress --pulsate --percentage=80 $DIALOGSET --text="Memproses..." --on-top --auto-kill --auto-close --button=gtk-cancel &>> /tmp/pasoresizer-tmp
-else 
-    echo "No PNG Found, nothing todo"
+
+if [[ $EXFORMAT == Default ]]; then
+    ITEMS=$(ls -w 1 "$SCDIR" | wc -l)
+    index=2
+    { CONVERT_JPG & CONVERT_PNG; } | yad --progress --percentage=0 --center --width=350 --auto-close --title="Memproses Berkas"
+fi
+
+
+if [[ $EXFORMAT == JPG ]]; then
+    ITEMS=$(ls -w 1 "$SCDIR" | wc -l)
+    index=2
+    CONVERT_TO_JPG | yad --progress --percentage=0 --center --width=350 --auto-close --title="Memproses Berkas"
+fi
+
+if [[ $EXFORMAT == PNG ]]; then
+    ITEMS=$(ls -w 1 "$SCDIR" | wc -l)
+    index=2
+    CONVERT_TO_PNG | yad --progress --percentage=0 --center --width=350 --auto-close --title="Memproses Berkas"
 fi
 
 cd "$MAINDIR"
 
 # Dialog Info
-TOTAL=`ls $OUTPUTDIR | wc -l`
+TOTAL=`ls "$OUTPUTDIR" | wc -l`
 echo -e "Berhasil memproses $TOTAL gambar ke folder $OUTPUTDIR! \n\nPasopati by Devlovers ID \nhttps://dev-is.my.id/" | yad --center --title="Status" --width=500 --height=320 --button="gtk-ok:0" --image=/opt/pasopati/pasopati.png  --text-info --wrap --fixed --show-uri --uri-color=#ad8305
 
-# # rm /tmp/pasoresizer-tmp
+rm /tmp/pasoresizer-tmp
