@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Pasopati by Rania Amina (me@raniaamina)
-VERSION=1.7.5
+VERSION=1.7.7
 
 set -e
 
@@ -48,6 +48,29 @@ fi
 
 MAINDIR=$PWD
 SCDIR=$1
+CONFIG_DIR="$HOME/.config/pasopati.cfg"
+
+# Read Last Setting
+if [[ -f $CONFIG_DIR ]] ; then
+echo "Found Config file: $CONFIG_DIR"
+WidthConf=$(cat ~/.config/pasopati.cfg | egrep -v "^\s*(#|$)" | sed "1q;d")
+HeightConf=$(cat ~/.config/pasopati.cfg | egrep -v "^\s*(#|$)" | sed "2q;d")
+QualityConf=$(cat ~/.config/pasopati.cfg | egrep -v "^\s*(#|$)" | sed "3q;d")
+ColospaceConf=$(cat ~/.config/pasopati.cfg | egrep -v "^\s*(#|$)" | sed "4q;d")
+FormatConf=$(cat ~/.config/pasopati.cfg | egrep -v "^\s*(#|$)" | sed "5q;d")
+CropConf=$(cat ~/.config/pasopati.cfg | egrep -v "^\s*(#|$)" | sed "6q;d")
+OptimizeConf=$(cat ~/.config/pasopati.cfg | egrep -v "^\s*(#|$)" | sed "7q;d")
+
+else
+echo "Found Config Not Found"
+WidthConf="0\!0..10000\!1\!0"
+HeightConf="0\!0..10000\!1\!0"
+QualityConf="90\!1..100\!1\!0"
+ColospaceConf="RGB!CMYK"
+FormatConf="Default!PNG!JPG"
+CropConf="FALSE"
+OptimizeConf="FALSE"
+fi
 
 yad --plug=$KEY --tabnum=1 --form --title="Pasopati" $DIALOGSET --scroll --vscroll-policy=auto --focus-field=1 \
 --field=" Folder Sumber":DIR \
@@ -60,7 +83,7 @@ yad --plug=$KEY --tabnum=1 --form --title="Pasopati" $DIALOGSET --scroll --vscro
 --field=" Crop Result":CHK \
 --field=" Optimize PNG":CHK \
 --separator=$'\n' \
--- "$SCDIR" "$MAINDIR" "128\!0..10000\!1\!0" "128\!0..10000\!1\!0" "90\!1..100\!1\!0" "RGB!CMYK" "Default!PNG!JPG" "TRUE" "FALSE"\
+-- "$SCDIR" "$MAINDIR" "$WidthConf" "$HeightConf" "$QualityConf" "$ColospaceConf" "$FormatConf" "$CropConf" "$OptimizeConf"\
 > /tmp/pasoresizer-tmp &
 
 yad --plug=$KEY --tabnum=2 --form --title="Pasopati" $DIALOGSET  \
@@ -211,5 +234,46 @@ cd "$MAINDIR"
 # Dialog Info
 TOTAL=`ls "$OUTPUTDIR" | wc -l`
 echo -e "Berhasil memproses $TOTAL gambar ke folder $OUTPUTDIR! \n\nPasopati by Devlovers ID \nhttps://dev-is.my.id/" | yad --center --title="Status" --width=500 --height=320 --button="gtk-ok:0" --image=/opt/pasopati/pasopati.png  --text-info --wrap --fixed --show-uri --uri-color=#ad8305
+
+
+# Create Config
+
+if [[ $COLORSPACE == RGB ]] ; then
+CLSPACE="RGB!CMYK"
+else
+CLSPACE="CMYK!RGB"
+fi
+
+if [[ $EXFORMAT == Default ]] ; then
+XFORMAT="Default!PNG!JPG"
+fi
+
+if [[ $EXFORMAT == JPG ]] ; then
+XFORMAT="JPG!PNG!Default"
+fi
+
+if [[ $EXFORMAT == PNG ]] ; then
+XFORMAT="PNG!JPG!Default"
+fi
+
+# Create User Config
+
+if [[ -f $CONFIG_DIR ]] ; then
+echo "Menyimpan pengaturan ..."
+else
+echo "Membuat berkas konfigurasi ..."
+fi
+
+echo -e "# Pasopati $VERSION configuration files" > $CONFIG_DIR
+echo -e "# Default Width \n$WIDTH\!0..10000\!1\!0" >> $CONFIG_DIR
+echo -e "\n# Default Hight \n$HEIGHT\!0..10000\!1\!0" >> $CONFIG_DIR
+echo -e "\n# Default Quality for JPG \n$QUALITY\!1..100\!1\!0" >> $CONFIG_DIR
+echo -e "\n# Default Colorspace \n$CLSPACE" >> $CONFIG_DIR
+echo -e "\n# Default Export Format \n$XFORMAT" >> $CONFIG_DIR
+echo -e "\n# Crop Result \n$CROPSTAT" >> $CONFIG_DIR
+echo -e "\n# Optimize PNG \n$PNGOPT" >> $CONFIG_DIR
+
+# cat $CONFIG_DIR
+
 
 rm /tmp/pasoresizer-tmp
