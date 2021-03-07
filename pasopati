@@ -111,20 +111,16 @@ PNGOPT=`sed "9q;d" /tmp/pasoresizer-tmp`
 
 # cat /tmp/pasoresizer-tmp
 
-if [[ $WIDTH == 0 ]]; then
-    GEOMETRY=`echo x$HEIGHT`
+
+GEOMETRY="$WIDTH"x"$HEIGHT"
+if [[ $HEIGHT == 0 ]]; then
+    GEOMETRY=`echo "$WIDTH"x`
     # echo $GEOMETRY 
-else
-    GEOMETRY="$WIDTH"x"$HEIGHT"
-    # echo $GEOMETRY
 fi
 
-if [[ $HEIGHT == 0 ]]; then
-    GEOMETRY=`echo $WIDTH`
+if [[ $WIDTH == 0 ]]; then
+    GEOMETRY=`echo "x$HEIGHT"`
     # echo $GEOMETRY 
-else
-    GEOMETRY="$WIDTH"x"$HEIGHT"
-    # echo $GEOMETRY
 fi
 
 if [[ $CROPSTAT == TRUE ]]; then
@@ -153,7 +149,7 @@ CONVERT_JPG () {
     do 
     persen=$(($index*100/$ITEMS))
     echo "# Memproses (JPG) $i \n" 
-	convert -geometry $GEOMETRY^ $CROPIMG -strip -interlace Plane -quality $QUALITY -colorspace $COLORSPACE "$i" "$OUTPUTDIR/${i%.*}.jpg"; let index++ ; echo $persen ; done #| yad --progress --percentage=0 --center --width=350 --auto-close --title="Memproses Berkas" 
+	convert -geometry $GEOMETRY $CROPIMG -strip -interlace Plane -quality $QUALITY -colorspace $COLORSPACE "$i" "$OUTPUTDIR/${i%.*}.jpg"; let index++ ; echo $persen ; done #| yad --progress --percentage=0 --center --width=350 --auto-close --title="Memproses Berkas" 
     else 
     echo "No JPG Found, nothing todo"
     fi
@@ -166,7 +162,7 @@ CONVERT_PNG () {
     do
     persen=$(($index*100/$ITEMS));
     echo "# Memproses (PNG) '$i' \n" 
-    convert -geometry $GEOMETRY^ $CROPIMG "$i" "$OUTPUTDIR/${i%.*}.png"; let index++; echo $persen; done #| yad --progress --percentage=0 --center --width=350 --auto-close --title="Memproses Berkas"
+    convert -geometry $GEOMETRY $CROPIMG "$i" "$OUTPUTDIR/${i%.*}.png"; let index++; echo $persen; done #| yad --progress --percentage=0 --center --width=350 --auto-close --title="Memproses Berkas"
     else 
     echo "No PNG Found, nothing todo"
     fi
